@@ -2,22 +2,22 @@ import React, { useState, useEffect } from 'react'
 import { Box, Text } from 'ink'
 import { isLoggedIn, clearConfig } from './lib/config.js'
 import { getPRs, getChecklist, PR, Checklist } from './lib/api.js'
+import { Splash } from './screens/Splash.js'
 import { Login } from './screens/Login.js'
 import { PRList } from './screens/PRList.js'
 import { ChecklistScreen } from './screens/Checklist.js'
 import { Running } from './screens/Running.js'
 
 type Screen =
+  | 'splash'
   | 'login'
   | 'prs'
   | 'checklist'
   | 'running'
 
 export const App = () => {
-  // Explicitly compute initial screen — never default to 'prs' without a valid token
-  const initialScreen: Screen = isLoggedIn() ? 'prs' : 'login'
-
-  const [screen, setScreen] = useState<Screen>(initialScreen)
+  // Always start with splash so the logo shows on every launch
+  const [screen, setScreen] = useState<Screen>('splash')
   const [prs, setPRs] = useState<PR[]>([])
   const [selectedPR, setSelectedPR] = useState<PR | null>(null)
   const [checklist, setChecklist] = useState<Checklist | null>(null)
@@ -31,6 +31,11 @@ export const App = () => {
     }
   }, [screen])
 
+  const handleSplashDone = () => {
+    // After splash, route based on current token validity
+    setScreen(isLoggedIn() ? 'prs' : 'login')
+  }
+
   const loadPRs = async () => {
     setLoadingPRs(true)
     setError('')
@@ -38,7 +43,7 @@ export const App = () => {
       const data = await getPRs()
       setPRs(data)
     } catch (e: any) {
-      // 401 means token is invalid/expired — clear it and force re-login
+      // 401 = token invalid/expired — clear and force re-login
       if (e.response?.status === 401) {
         clearConfig()
         setScreen('login')
@@ -78,6 +83,10 @@ export const App = () => {
         </Text>
       </Box>
     )
+  }
+
+  if (screen === 'splash') {
+    return <Splash onDone={handleSplashDone} />
   }
 
   if (screen === 'login') {
