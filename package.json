@@ -1,0 +1,26 @@
+{
+  "name": "qeist",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "qeist": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.16.0",
+    "conf": "^15.1.0",
+    "ink": "^7.0.2",
+    "open": "^11.0.0",
+    "react": "^19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "@types/react": "^19.2.14",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.3"
+  }
+}
