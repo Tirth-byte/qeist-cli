@@ -20,7 +20,6 @@ export const PRList = ({
     if (key.upArrow) {
       setSelected(s => Math.max(0, s - 1))
     }
-    // Bug fix: guard against prs.length === 0 which sent selected to -1
     if (key.downArrow && prs.length > 0) {
       setSelected(s => Math.min(prs.length - 1, s + 1))
     }
@@ -40,22 +39,25 @@ export const PRList = ({
     const days = Math.floor(hrs / 24)
     if (days > 0) return `${days}d ago`
     if (hrs > 0) return `${hrs}h ago`
-    return `${mins}m ago`
+    if (mins > 0) return `${mins}m ago`
+    return 'just now'
   }
 
   return (
     <Box flexDirection="column" padding={1}>
       <Header
         title="Pull Requests"
-        subtitle={`${prs.length} open PRs`}
+        subtitle={`${prs.length} open PR${prs.length !== 1 ? 's' : ''}`}
       />
 
       {isLoading && (
-        <Text color="gray">Loading pull requests...</Text>
+        <Box marginTop={1}>
+          <Text color="gray">⠿ Loading pull requests...</Text>
+        </Box>
       )}
 
       {!isLoading && prs.length === 0 && (
-        <Box flexDirection="column" gap={1}>
+        <Box flexDirection="column" gap={1} marginTop={1}>
           <Text color="gray">No open pull requests found.</Text>
           <Text dimColor color="gray">
             Open a PR on GitHub and Qeist will analyze it automatically.
@@ -63,46 +65,61 @@ export const PRList = ({
         </Box>
       )}
 
-      {prs.map((pr, i) => (
-        <Box
-          key={pr.id}
-          flexDirection="column"
-          marginBottom={1}
-          paddingLeft={selected === i ? 0 : 1}
-        >
-          <Box gap={1} alignItems="center">
-            {selected === i && (
-              <Text color="green" bold>❯</Text>
-            )}
-            <Text bold color={selected === i ? 'white' : 'gray'}>
-              #{pr.prNumber}
-            </Text>
-            <Text
-              bold={selected === i}
-              color={selected === i ? 'white' : 'gray'}
-              wrap="truncate-end"
+      {/* PR cards — blank line between each via marginBottom={1} */}
+      <Box flexDirection="column" marginTop={1}>
+        {prs.map((pr, i) => {
+          const isSelected = selected === i
+          return (
+            <Box
+              key={pr.id}
+              flexDirection="column"
+              marginBottom={1}
             >
-              {pr.prTitle}
-            </Text>
-          </Box>
-          <Box paddingLeft={3} gap={2}>
-            <Text dimColor color="gray" italic>
-              {pr.repo}
-            </Text>
-            <RiskBadge level={pr.riskLevel} />
-            <StatusBadge status={pr.status} />
-            <Text dimColor color="gray">
-              {timeAgo(pr.createdAt)}
-            </Text>
-          </Box>
-        </Box>
-      ))}
+              {/* Line 1: cursor · number · title · repo (all on one line) */}
+              <Box gap={1} alignItems="center">
+                {/* Always reserve cursor column so layout never shifts */}
+                <Text color="green" bold>
+                  {isSelected ? '❯' : ' '}
+                </Text>
+                <Text bold color={isSelected ? 'white' : 'gray'}>
+                  #{pr.prNumber}
+                </Text>
+                <Text
+                  bold={isSelected}
+                  color={isSelected ? 'white' : 'gray'}
+                  wrap="truncate-end"
+                >
+                  {pr.prTitle}
+                </Text>
+                <Text color="gray" dimColor>
+                  ({pr.repo})
+                </Text>
+              </Box>
 
-      <Box marginTop={1}>
-        <Text dimColor color="gray">
-          ↑↓ navigate  Enter open  ← back  q quit
-        </Text>
+              {/* Line 2: risk badge · status · time */}
+              <Box paddingLeft={2} gap={2}>
+                <RiskBadge level={pr.riskLevel} />
+                <StatusBadge status={pr.status} />
+                <Text dimColor color="gray">
+                  {timeAgo(pr.createdAt)}
+                </Text>
+              </Box>
+            </Box>
+          )
+        })}
       </Box>
+
+      {/* Hint bar */}
+      {!isLoading && (
+        <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
+          <Text color="gray">
+            {'↑↓'} navigate{'   '}
+            <Text color="green" bold>Enter</Text>
+            {' open checklist   '}
+            {'q'} quit
+          </Text>
+        </Box>
+      )}
     </Box>
   )
 }

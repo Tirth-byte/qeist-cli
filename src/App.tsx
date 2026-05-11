@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Box, Text } from 'ink'
-import { isLoggedIn } from './lib/config.js'
+import { isLoggedIn, clearConfig } from './lib/config.js'
 import { getPRs, getChecklist, PR, Checklist } from './lib/api.js'
 import { Login } from './screens/Login.js'
 import { PRList } from './screens/PRList.js'
@@ -14,13 +14,13 @@ type Screen =
   | 'running'
 
 export const App = () => {
-  const [screen, setScreen] = useState<Screen>(
-    isLoggedIn() ? 'prs' : 'login'
-  )
+  // Explicitly compute initial screen — never default to 'prs' without a valid token
+  const initialScreen: Screen = isLoggedIn() ? 'prs' : 'login'
+
+  const [screen, setScreen] = useState<Screen>(initialScreen)
   const [prs, setPRs] = useState<PR[]>([])
   const [selectedPR, setSelectedPR] = useState<PR | null>(null)
   const [checklist, setChecklist] = useState<Checklist | null>(null)
-  // Bug fix: track actual checked indexes separately so Running screen is accurate
   const [runningCompleted, setRunningCompleted] = useState<number[]>([])
   const [loadingPRs, setLoadingPRs] = useState(false)
   const [error, setError] = useState('')
@@ -38,8 +38,15 @@ export const App = () => {
       const data = await getPRs()
       setPRs(data)
     } catch (e: any) {
-      setError(e.response?.data?.error ||
-        'Failed to load PRs. Check your connection.')
+      // 401 means token is invalid/expired — clear it and force re-login
+      if (e.response?.status === 401) {
+        clearConfig()
+        setScreen('login')
+        return
+      }
+      setError(
+        e.response?.data?.error || 'Failed to load PRs. Check your connection.'
+      )
     } finally {
       setLoadingPRs(false)
     }
@@ -57,7 +64,6 @@ export const App = () => {
     }
   }
 
-  // Bug fix: receive completed indexes from ChecklistScreen so Running is accurate
   const handleApprove = (completedIndexes: number[]) => {
     setRunningCompleted(completedIndexes)
     setScreen('running')
@@ -66,7 +72,7 @@ export const App = () => {
   if (error) {
     return (
       <Box flexDirection="column" padding={1} gap={1}>
-        <Text color="red">✗ {error}</Text>
+        <Text color="red" bold>✗ {error}</Text>
         <Text color="gray" dimColor>
           Run qeist login if your session expired
         </Text>
@@ -75,9 +81,7 @@ export const App = () => {
   }
 
   if (screen === 'login') {
-    return (
-      <Login onSuccess={() => setScreen('prs')} />
-    )
+    return <Login onSuccess={() => setScreen('prs')} />
   }
 
   if (screen === 'prs') {

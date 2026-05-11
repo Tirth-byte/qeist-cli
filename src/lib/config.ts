@@ -34,10 +34,16 @@ export const saveConfig = (data: {
 
 export const clearConfig = () => config.clear()
 
-export const isLoggedIn = () => {
-  const token = config.get('token') as string
-  const savedAt = config.get('savedAt') as number
-  if (!token || !savedAt) return false
+export const isLoggedIn = (): boolean => {
+  const token = config.get('token') as string | undefined
+  const savedAt = config.get('savedAt') as number | undefined
+
+  // Token must be a non-empty string
+  if (!token || typeof token !== 'string' || token.trim() === '') return false
+
+  // savedAt must be a positive number
+  if (!savedAt || typeof savedAt !== 'number' || savedAt <= 0) return false
+
   const eightHours = 8 * 60 * 60 * 1000
-  return Date.now() - savedAt < eightHours
+  return (Date.now() - savedAt) < eightHours
 }

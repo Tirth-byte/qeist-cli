@@ -24,13 +24,13 @@ type PriorityProps = {
 }
 
 export const PriorityBadge = ({ level }: PriorityProps) => {
-  const config = {
-    critical: { color: 'red', label: 'CRITICAL' },
-    important: { color: 'yellow', label: 'IMPORTANT' },
-    nice_to_have: { color: 'gray', label: 'NICE TO HAVE' }
+  const map = {
+    critical:     { color: 'red',    label: 'CRITICAL' },
+    important:    { color: 'yellow', label: 'IMPORTANT' },
+    nice_to_have: { color: 'gray',   label: 'NICE TO HAVE' }
   } as const
-  const { color, label } = config[level]
-  return <Text color={color}>[{label}]</Text>
+  const { color, label } = map[level]
+  return <Text color={color} bold>[{label}]</Text>
 }
 
 type StatusProps = {
@@ -38,12 +38,12 @@ type StatusProps = {
 }
 
 export const StatusBadge = ({ status }: StatusProps) => {
-  const config = {
-    pending: { color: 'gray', label: 'QUEUED' },
+  const map = {
+    pending:    { color: 'gray',   label: 'QUEUED'    },
     processing: { color: 'yellow', label: 'ANALYZING' },
-    completed: { color: 'green', label: 'READY' },
-    failed: { color: 'red', label: 'FAILED' }
+    completed:  { color: 'green',  label: 'READY'     },
+    failed:     { color: 'red',    label: 'FAILED'    }
   } as const
-  const { color, label } = config[status]
-  return <Text color={color}>{label}</Text>
+  const { color, label } = map[status]
+  return <Text color={color} bold>{label}</Text>
 }
