@@ -29,8 +29,23 @@ export const PRList = ({
 }: Props) => {
   const [selected, setSelected] = useState(0)
 
-  // Sort once so display order and index space are identical
-  const sortedPrs = [...prs].sort((a, b) => a.repo.localeCompare(b.repo))
+  // Step 1 — repos in alphabetical order
+  const repos = [...new Set(prs.map(p => p.repo))]
+    .sort((a, b) => a.localeCompare(b))
+
+  // Step 2 — flat array matching exact display order: repo A-Z, within repo newest first
+  const sortedPrs = repos.flatMap(repo =>
+    prs
+      .filter(p => p.repo === repo)
+      .sort((a, b) => b.prNumber - a.prNumber)
+  )
+
+  // Step 3 — repo groups built from sortedPrs indices
+  const repoGroups: Record<string, number[]> = {}
+  sortedPrs.forEach((pr, index) => {
+    if (!repoGroups[pr.repo]) repoGroups[pr.repo] = []
+    repoGroups[pr.repo].push(index)
+  })
 
   useInput((input, key) => {
     if (key.upArrow && sortedPrs.length > 0) {
@@ -50,14 +65,6 @@ export const PRList = ({
     }
     if (input === 'q') process.exit(0)
   })
-
-  // Group by repo using sortedPrs indices so visual position === selected index
-  const repoGroups = sortedPrs.reduce<Record<string, number[]>>((acc, pr, i) => {
-    if (!acc[pr.repo]) acc[pr.repo] = []
-    acc[pr.repo].push(i)
-    return acc
-  }, {})
-  const repos = Object.keys(repoGroups).sort()
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -83,7 +90,6 @@ export const PRList = ({
       <Box flexDirection="column">
         {repos.map(repo => (
           <Box key={repo} flexDirection="column" marginBottom={1}>
-            {/* Repo header */}
             <Box gap={1} marginBottom={0}>
               <Text color="cyan" bold>⌥ {repo}</Text>
               <Text color="gray" dimColor>
@@ -91,10 +97,9 @@ export const PRList = ({
               </Text>
             </Box>
 
-            {/* PR cards — sortedIdx is the selected-space index */}
-            {repoGroups[repo].map(sortedIdx => {
-              const pr = sortedPrs[sortedIdx]
-              const isSelected = selected === sortedIdx
+            {repoGroups[repo].map(index => {
+              const pr = sortedPrs[index]
+              const isSelected = selected === index
               return (
                 <Box
                   key={pr.id}
