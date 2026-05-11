@@ -15,10 +15,11 @@ type Props = {
   checklist: CL | null
   onBack: () => void
   onApprove: (completedIndexes: number[]) => void
+  onChat: () => void
 }
 
 export const ChecklistScreen = ({
-  pr, checklist, onBack, onApprove
+  pr, checklist, onBack, onApprove, onChat
 }: Props) => {
   const [selected, setSelected] = useState(0)
   const [completed, setCompleted] = useState<number[]>([])
@@ -56,6 +57,9 @@ export const ChecklistScreen = ({
     }
     if (input === 'a') {
       approveAll()
+    }
+    if (input === 'c') {
+      onChat()
     }
     if (input === 'q') process.exit(0)
 
@@ -191,9 +195,9 @@ export const ChecklistScreen = ({
           {' check  '}
           <Text color="green" bold>a</Text>
           {' approve all  '}
+          <Text color="green" bold>c</Text>
+          {' chat with AI  '}
           <Text color="green" bold>b</Text>
-          {' / '}
-          <Text color="green" bold>←</Text>
           {' back  '}
           <Text color="green" bold>q</Text>
           {' quit'}

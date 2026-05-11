@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { Box, Text } from 'ink'
 import { isLoggedIn, clearConfig } from './lib/config.js'
-import { getPRs, getChecklist, PR, Checklist } from './lib/api.js'
+import { getPRs, getChecklist, PR, Checklist, TestCase } from './lib/api.js'
 import { Splash } from './screens/Splash.js'
 import { Login } from './screens/Login.js'
 import { PRList } from './screens/PRList.js'
 import { ChecklistScreen } from './screens/Checklist.js'
 import { Running } from './screens/Running.js'
+import { Chat } from './screens/Chat.js'
 
 type Screen =
   | 'splash'    // always first — shows logo
@@ -14,6 +15,7 @@ type Screen =
   | 'prs'       // PR list (root after auth)
   | 'checklist' // selected PR checklist
   | 'running'   // results after approve-all
+  | 'chat'      // AI chat to add test cases
 
 export const App = () => {
   // ALWAYS start with splash. Never 'prs' or 'checklist' directly.
@@ -22,6 +24,7 @@ export const App = () => {
   const [prs, setPRs] = useState<PR[]>([])
   const [selectedPR, setSelectedPR] = useState<PR | null>(null)
   const [checklist, setChecklist] = useState<Checklist | null>(null)
+  const [chatPR, setChatPR] = useState<PR | null>(null)
   const [runningCompleted, setRunningCompleted] = useState<number[]>([])
   const [loadingPRs, setLoadingPRs] = useState(false)
   const [error, setError] = useState('')
@@ -74,6 +77,19 @@ export const App = () => {
     setScreen('running')
   }
 
+  const handleOpenChat = (pr: PR) => {
+    setChatPR(pr)
+    setScreen('chat')
+  }
+
+  const handleChatTestCases = (newCases: TestCase[]) => {
+    if (!checklist) return
+    setChecklist(prev => prev ? {
+      ...prev,
+      testCases: [...prev.testCases, ...newCases]
+    } : prev)
+  }
+
   if (error) {
     return (
       <Box flexDirection="column" padding={1} gap={1}>
@@ -112,6 +128,17 @@ export const App = () => {
         checklist={checklist}
         onBack={() => setScreen('prs')}
         onApprove={handleApprove}
+        onChat={() => handleOpenChat(selectedPR)}
+      />
+    )
+  }
+
+  if (screen === 'chat' && chatPR) {
+    return (
+      <Chat
+        pr={chatPR}
+        onBack={() => setScreen('checklist')}
+        onTestCasesAdded={handleChatTestCases}
       />
     )
   }

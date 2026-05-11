@@ -33,6 +33,8 @@ export type TestCase = {
   why: string
   step: string
   expected: string
+  source?: 'ai' | 'chat'
+  addedAt?: string
 }
 
 export type Checklist = {
@@ -61,6 +63,39 @@ export const getChecklist = async (
     if (e.response?.status === 404) return null
     throw e
   }
+}
+
+export const sendChatMessage = async (
+  prId: string,
+  message: string
+): Promise<{
+  response: string
+  newTestCases: TestCase[]
+  totalTestCases: number
+}> => {
+  const res = await client().post(
+    `/api/prs/${prId}/checklist/chat`,
+    { message }
+  )
+  return res.data
+}
+
+export const getChatHistory = async (
+  prId: string
+): Promise<{
+  messages: Array<{
+    id: string
+    userEmail: string
+    message: string
+    response: string
+    addedTestCases: TestCase[]
+    createdAt: string
+  }>
+}> => {
+  const res = await client().get(
+    `/api/prs/${prId}/checklist/chat/history`
+  )
+  return res.data
 }
 
 export const updateProgress = async (
