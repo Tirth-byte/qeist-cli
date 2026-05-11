@@ -14,9 +14,8 @@ export const Running = ({
   completedIndexes,
   onDone
 }: Props) => {
-  // Bug fix: add keyboard handler so user can leave results screen
   useInput((input, key) => {
-    if (input === 'b' || key.leftArrow || key.return || input === 'r') {
+    if (input === 'b' || key.leftArrow || key.return) {
       onDone()
     }
     if (input === 'q') process.exit(0)
@@ -29,7 +28,7 @@ export const Running = ({
     <Box flexDirection="column" padding={1}>
       <Header title="QA Results" subtitle="Synced to dashboard" />
 
-      <Box flexDirection="column" gap={0}>
+      <Box flexDirection="column">
         {testCases.map((tc, i) => {
           const isDone = completedIndexes.includes(i)
           return (
@@ -37,10 +36,7 @@ export const Running = ({
               <Text color={isDone ? 'green' : 'gray'}>
                 {isDone ? '✅' : '○ '}
               </Text>
-              <Text
-                color={isDone ? 'white' : 'gray'}
-                dimColor={!isDone}
-              >
+              <Text color={isDone ? 'white' : 'gray'} dimColor={!isDone}>
                 {tc.area}
               </Text>
               <Text color={isDone ? 'green' : 'gray'} dimColor>
@@ -60,9 +56,23 @@ export const Running = ({
         </Text>
       </Box>
 
-      <Box marginTop={1}>
-        <Text dimColor color="gray">
-          Enter / b back to PRs  q quit
+      {/* Bottom hint bar */}
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingLeft={1}
+        paddingRight={1}
+        marginTop={1}
+      >
+        <Text color="gray" dimColor>
+          <Text color="green" bold>b</Text>
+          {' / '}
+          <Text color="green" bold>←</Text>
+          {' / '}
+          <Text color="green" bold>Enter</Text>
+          {' back to PR list  '}
+          <Text color="green" bold>q</Text>
+          {' quit'}
         </Text>
       </Box>
     </Box>

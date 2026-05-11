@@ -35,7 +35,7 @@ export const ChecklistScreen = ({
   const done = completed.length
 
   useInput((input, key) => {
-    // Bug fix: guard all input when checklist hasn't loaded yet
+    // Guard all input when checklist hasn't loaded yet
     if (!checklist) {
       if (key.leftArrow || input === 'b') onBack()
       if (input === 'q') process.exit(0)
@@ -82,10 +82,10 @@ export const ChecklistScreen = ({
     const all = Array.from({ length: total }, (_, i) => i)
     setCompleted(all)
     await updateProgress(pr.id, all)
-    // Bug fix: pass completed indexes so Running screen has correct data
     setTimeout(() => onApprove(all), 500)
   }
 
+  // Analyzing state — checklist not yet loaded
   if (!checklist) {
     return (
       <Box flexDirection="column" padding={1}>
@@ -95,11 +95,22 @@ export const ChecklistScreen = ({
         />
         <Box flexDirection="column" gap={1} alignItems="center" marginTop={2}>
           <Text color="yellow" bold>⠿ AI is analyzing your PR...</Text>
+          <Text color="gray" dimColor>This usually takes 20–30 seconds.</Text>
+        </Box>
+        <Box
+          borderStyle="round"
+          borderColor="gray"
+          paddingLeft={1}
+          paddingRight={1}
+          marginTop={2}
+        >
           <Text color="gray" dimColor>
-            This usually takes 20–30 seconds.
-          </Text>
-          <Text color="gray" dimColor>
-            b / ← to go back
+            <Text color="green" bold>b</Text>
+            {' / '}
+            <Text color="green" bold>←</Text>
+            {' back to PR list  '}
+            <Text color="green" bold>q</Text>
+            {' quit'}
           </Text>
         </Box>
       </Box>
@@ -113,27 +124,29 @@ export const ChecklistScreen = ({
         subtitle={`${pr.repo} #${pr.prNumber}`}
       />
 
+      {/* Risk + save indicator */}
       <Box gap={2} marginBottom={1}>
         <Text bold>Risk:</Text>
         <RiskBadge level={pr.riskLevel} />
-        {saving && (
-          <Text color="gray" dimColor>  saving...</Text>
-        )}
+        {saving && <Text color="gray" dimColor>  saving...</Text>}
       </Box>
 
+      {/* AI summary */}
       <Box
         flexDirection="column"
         marginBottom={1}
         borderStyle="round"
         borderColor="gray"
-        padding={1}
+        paddingLeft={1}
+        paddingRight={1}
+        paddingTop={0}
+        paddingBottom={0}
       >
         <Text color="green" bold>AI SUMMARY</Text>
-        <Text color="gray" wrap="wrap">
-          {checklist.summary}
-        </Text>
+        <Text color="gray" wrap="wrap">{checklist.summary}</Text>
       </Box>
 
+      {/* Regression areas */}
       {checklist.regressionAreas.length > 0 && (
         <Box flexDirection="column" marginBottom={1}>
           <Text color="yellow" bold>⚠ REGRESSION RISK AREAS</Text>
@@ -145,11 +158,13 @@ export const ChecklistScreen = ({
         </Box>
       )}
 
+      {/* Progress bar */}
       <Box marginBottom={1} gap={1}>
         <Text bold>Progress</Text>
         <ProgressBar done={done} total={total} />
       </Box>
 
+      {/* Test cases */}
       <Box flexDirection="column">
         {checklist.testCases.map((tc, i) => (
           <TestCaseRow
@@ -162,11 +177,26 @@ export const ChecklistScreen = ({
         ))}
       </Box>
 
-      <Box marginTop={1}>
-        <Text dimColor color="gray">
-          {'↑↓ navigate  Space/Enter check  1–'}
-          {total}
-          {' quick  a approve all  ← back  q quit'}
+      {/* Bottom hint bar */}
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingLeft={1}
+        paddingRight={1}
+        marginTop={1}
+      >
+        <Text color="gray" dimColor>
+          {'↑↓ navigate  '}
+          <Text color="green" bold>Space</Text>
+          {' check  '}
+          <Text color="green" bold>a</Text>
+          {' approve all  '}
+          <Text color="green" bold>b</Text>
+          {' / '}
+          <Text color="green" bold>←</Text>
+          {' back  '}
+          <Text color="green" bold>q</Text>
+          {' quit'}
         </Text>
       </Box>
     </Box>

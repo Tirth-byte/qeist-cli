@@ -8,16 +8,17 @@ type Props = {
   prs: PR[]
   onSelect: (pr: PR) => void
   onBack: () => void
+  onRefresh: () => void
   isLoading: boolean
 }
 
 export const PRList = ({
-  prs, onSelect, onBack, isLoading
+  prs, onSelect, onBack, onRefresh, isLoading
 }: Props) => {
   const [selected, setSelected] = useState(0)
 
   useInput((input, key) => {
-    if (key.upArrow) {
+    if (key.upArrow && prs.length > 0) {
       setSelected(s => Math.max(0, s - 1))
     }
     if (key.downArrow && prs.length > 0) {
@@ -28,6 +29,9 @@ export const PRList = ({
     }
     if (key.leftArrow || input === 'b') {
       onBack()
+    }
+    if (input === 'r') {
+      onRefresh()
     }
     if (input === 'q') process.exit(0)
   })
@@ -50,12 +54,14 @@ export const PRList = ({
         subtitle={`${prs.length} open PR${prs.length !== 1 ? 's' : ''}`}
       />
 
+      {/* Loading / refresh state */}
       {isLoading && (
         <Box marginTop={1}>
-          <Text color="gray">⠿ Loading pull requests...</Text>
+          <Text color="yellow">⟳ Refreshing...</Text>
         </Box>
       )}
 
+      {/* Empty state */}
       {!isLoading && prs.length === 0 && (
         <Box flexDirection="column" gap={1} marginTop={1}>
           <Text color="gray">No open pull requests found.</Text>
@@ -65,19 +71,14 @@ export const PRList = ({
         </Box>
       )}
 
-      {/* PR cards — blank line between each via marginBottom={1} */}
+      {/* PR cards */}
       <Box flexDirection="column" marginTop={1}>
         {prs.map((pr, i) => {
           const isSelected = selected === i
           return (
-            <Box
-              key={pr.id}
-              flexDirection="column"
-              marginBottom={1}
-            >
-              {/* Line 1: cursor · number · title · repo (all on one line) */}
+            <Box key={pr.id} flexDirection="column" marginBottom={1}>
+              {/* Line 1: cursor · number · title · repo */}
               <Box gap={1} alignItems="center">
-                {/* Always reserve cursor column so layout never shifts */}
                 <Text color="green" bold>
                   {isSelected ? '❯' : ' '}
                 </Text>
@@ -91,12 +92,10 @@ export const PRList = ({
                 >
                   {pr.prTitle}
                 </Text>
-                <Text color="gray" dimColor>
-                  ({pr.repo})
-                </Text>
+                <Text color="gray" dimColor>({pr.repo})</Text>
               </Box>
 
-              {/* Line 2: risk badge · status · time */}
+              {/* Line 2: badges · time */}
               <Box paddingLeft={2} gap={2}>
                 <RiskBadge level={pr.riskLevel} />
                 <StatusBadge status={pr.status} />
@@ -109,17 +108,24 @@ export const PRList = ({
         })}
       </Box>
 
-      {/* Hint bar */}
-      {!isLoading && (
-        <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
-          <Text color="gray">
-            {'↑↓'} navigate{'   '}
-            <Text color="green" bold>Enter</Text>
-            {' open checklist   '}
-            {'q'} quit
-          </Text>
-        </Box>
-      )}
+      {/* Bottom hint bar */}
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingLeft={1}
+        paddingRight={1}
+        marginTop={1}
+      >
+        <Text color="gray" dimColor>
+          {'↑↓ navigate  '}
+          <Text color="green" bold>Enter</Text>
+          {' open  '}
+          <Text color="green" bold>r</Text>
+          {' refresh  '}
+          <Text color="green" bold>q</Text>
+          {' quit'}
+        </Text>
+      </Box>
     </Box>
   )
 }

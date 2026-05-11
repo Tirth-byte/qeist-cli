@@ -52,15 +52,18 @@ export const Login = ({ onSuccess }: Props) => {
         )}
 
         {status === 'opening' && (
-          <Text color="green">Opening browser to authenticate...</Text>
+          <Box flexDirection="column" alignItems="center" gap={1}>
+            <Text color="green" bold>Opening browser to authenticate...</Text>
+            <Text color="gray" dimColor>https://qeist.in/cli-auth</Text>
+          </Box>
         )}
 
         {status === 'waiting' && (
           <Box flexDirection="column" alignItems="center" gap={1}>
             <Text color="green" bold>✓ Browser opened — sign in to continue</Text>
-            <Text color="gray">Waiting for authentication{dots}</Text>
+            <Text color="gray">Waiting for you to sign in{dots}</Text>
             <Text color="gray" dimColor>
-              The terminal will update automatically once signed in.
+              You can also visit qeist.in manually
             </Text>
           </Box>
         )}
@@ -68,7 +71,7 @@ export const Login = ({ onSuccess }: Props) => {
         {status === 'success' && (
           <Box flexDirection="column" alignItems="center" gap={1}>
             <Text color="green" bold>
-              ✅ Welcome back{email ? `, ${email}` : ''}!
+              ✅ Authenticated successfully{email ? ` as ${email}` : ''}!
             </Text>
             <Text color="gray">Loading your dashboard...</Text>
           </Box>
@@ -77,7 +80,7 @@ export const Login = ({ onSuccess }: Props) => {
         {status === 'error' && (
           <Box flexDirection="column" alignItems="center" gap={1}>
             <Text color="red" bold>✗ {error}</Text>
-            <Text color="gray" dimColor>Run qeist login to try again</Text>
+            <Text color="gray" dimColor>Run qeist again to retry</Text>
           </Box>
         )}
       </Box>

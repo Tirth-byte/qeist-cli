@@ -32,7 +32,6 @@ export const App = () => {
   }, [screen])
 
   const handleSplashDone = () => {
-    // After splash, route based on current token validity
     setScreen(isLoggedIn() ? 'prs' : 'login')
   }
 
@@ -100,6 +99,7 @@ export const App = () => {
         isLoading={loadingPRs}
         onSelect={handleSelectPR}
         onBack={() => process.exit(0)}
+        onRefresh={loadPRs}
       />
     )
   }
