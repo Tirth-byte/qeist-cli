@@ -29,15 +29,18 @@ export const PRList = ({
 }: Props) => {
   const [selected, setSelected] = useState(0)
 
+  // Sort once so display order and index space are identical
+  const sortedPrs = [...prs].sort((a, b) => a.repo.localeCompare(b.repo))
+
   useInput((input, key) => {
-    if (key.upArrow && prs.length > 0) {
+    if (key.upArrow && sortedPrs.length > 0) {
       setSelected(s => Math.max(0, s - 1))
     }
-    if (key.downArrow && prs.length > 0) {
-      setSelected(s => Math.min(prs.length - 1, s + 1))
+    if (key.downArrow && sortedPrs.length > 0) {
+      setSelected(s => Math.min(sortedPrs.length - 1, s + 1))
     }
-    if (key.return && prs[selected]) {
-      onSelect(prs[selected])
+    if (key.return && sortedPrs[selected]) {
+      onSelect(sortedPrs[selected])
     }
     if (key.leftArrow || input === 'b') {
       onBack()
@@ -48,8 +51,8 @@ export const PRList = ({
     if (input === 'q') process.exit(0)
   })
 
-  // Group PRs by repo, preserving original flat index for selection
-  const repoGroups = prs.reduce<Record<string, number[]>>((acc, pr, i) => {
+  // Group by repo using sortedPrs indices so visual position === selected index
+  const repoGroups = sortedPrs.reduce<Record<string, number[]>>((acc, pr, i) => {
     if (!acc[pr.repo]) acc[pr.repo] = []
     acc[pr.repo].push(i)
     return acc
@@ -63,12 +66,12 @@ export const PRList = ({
       <Box gap={2} marginBottom={1}>
         <Text bold color="white">Pull Requests</Text>
         <Text color="gray" dimColor>
-          {prs.length} open PR{prs.length !== 1 ? 's' : ''}
+          {sortedPrs.length} open PR{sortedPrs.length !== 1 ? 's' : ''}
         </Text>
         {isLoading && <Text color="yellow">⟳ refreshing...</Text>}
       </Box>
 
-      {!isLoading && prs.length === 0 && (
+      {!isLoading && sortedPrs.length === 0 && (
         <Box flexDirection="column" gap={1} marginTop={1}>
           <Text color="gray">No open pull requests found.</Text>
           <Text dimColor color="gray">
@@ -88,10 +91,10 @@ export const PRList = ({
               </Text>
             </Box>
 
-            {/* PR cards under this repo */}
-            {repoGroups[repo].map(flatIdx => {
-              const pr = prs[flatIdx]
-              const isSelected = selected === flatIdx
+            {/* PR cards — sortedIdx is the selected-space index */}
+            {repoGroups[repo].map(sortedIdx => {
+              const pr = sortedPrs[sortedIdx]
+              const isSelected = selected === sortedIdx
               return (
                 <Box
                   key={pr.id}
