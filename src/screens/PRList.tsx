@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Box, Text, useInput } from 'ink'
-import { Header } from '../components/Header.js'
+import { MiniLogo } from '../components/MiniLogo.js'
+import { NavBar } from '../components/NavBar.js'
 import { RiskBadge, StatusBadge } from '../components/Badge.js'
 import { PR } from '../lib/api.js'
 
@@ -10,6 +11,17 @@ type Props = {
   onBack: () => void
   onRefresh: () => void
   isLoading: boolean
+}
+
+const timeAgo = (dateStr: string) => {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  const hrs = Math.floor(mins / 60)
+  const days = Math.floor(hrs / 24)
+  if (days > 0) return `${days}d ago`
+  if (hrs > 0) return `${hrs}h ago`
+  if (mins > 0) return `${mins}m ago`
+  return 'just now'
 }
 
 export const PRList = ({
@@ -36,32 +48,26 @@ export const PRList = ({
     if (input === 'q') process.exit(0)
   })
 
-  const timeAgo = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime()
-    const mins = Math.floor(diff / 60000)
-    const hrs = Math.floor(mins / 60)
-    const days = Math.floor(hrs / 24)
-    if (days > 0) return `${days}d ago`
-    if (hrs > 0) return `${hrs}h ago`
-    if (mins > 0) return `${mins}m ago`
-    return 'just now'
-  }
+  // Group PRs by repo, preserving original flat index for selection
+  const repoGroups = prs.reduce<Record<string, number[]>>((acc, pr, i) => {
+    if (!acc[pr.repo]) acc[pr.repo] = []
+    acc[pr.repo].push(i)
+    return acc
+  }, {})
+  const repos = Object.keys(repoGroups).sort()
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Header
-        title="Pull Requests"
-        subtitle={`${prs.length} open PR${prs.length !== 1 ? 's' : ''}`}
-      />
+      <MiniLogo />
 
-      {/* Loading / refresh state */}
-      {isLoading && (
-        <Box marginTop={1}>
-          <Text color="yellow">⟳ Refreshing...</Text>
-        </Box>
-      )}
+      <Box gap={2} marginBottom={1}>
+        <Text bold color="white">Pull Requests</Text>
+        <Text color="gray" dimColor>
+          {prs.length} open PR{prs.length !== 1 ? 's' : ''}
+        </Text>
+        {isLoading && <Text color="yellow">⟳ refreshing...</Text>}
+      </Box>
 
-      {/* Empty state */}
       {!isLoading && prs.length === 0 && (
         <Box flexDirection="column" gap={1} marginTop={1}>
           <Text color="gray">No open pull requests found.</Text>
@@ -71,61 +77,66 @@ export const PRList = ({
         </Box>
       )}
 
-      {/* PR cards */}
-      <Box flexDirection="column" marginTop={1}>
-        {prs.map((pr, i) => {
-          const isSelected = selected === i
-          return (
-            <Box key={pr.id} flexDirection="column" marginBottom={1}>
-              {/* Line 1: cursor · number · title · repo */}
-              <Box gap={1} alignItems="center">
-                <Text color="green" bold>
-                  {isSelected ? '❯' : ' '}
-                </Text>
-                <Text bold color={isSelected ? 'white' : 'gray'}>
-                  #{pr.prNumber}
-                </Text>
-                <Text
-                  bold={isSelected}
-                  color={isSelected ? 'white' : 'gray'}
-                  wrap="truncate-end"
-                >
-                  {pr.prTitle}
-                </Text>
-                <Text color="gray" dimColor>({pr.repo})</Text>
-              </Box>
-
-              {/* Line 2: badges · time */}
-              <Box paddingLeft={2} gap={2}>
-                <RiskBadge level={pr.riskLevel} />
-                <StatusBadge status={pr.status} />
-                <Text dimColor color="gray">
-                  {timeAgo(pr.createdAt)}
-                </Text>
-              </Box>
+      <Box flexDirection="column">
+        {repos.map(repo => (
+          <Box key={repo} flexDirection="column" marginBottom={1}>
+            {/* Repo header */}
+            <Box gap={1} marginBottom={0}>
+              <Text color="cyan" bold>⌥ {repo}</Text>
+              <Text color="gray" dimColor>
+                ({repoGroups[repo].length} PR{repoGroups[repo].length !== 1 ? 's' : ''})
+              </Text>
             </Box>
-          )
-        })}
+
+            {/* PR cards under this repo */}
+            {repoGroups[repo].map(flatIdx => {
+              const pr = prs[flatIdx]
+              const isSelected = selected === flatIdx
+              return (
+                <Box
+                  key={pr.id}
+                  flexDirection="column"
+                  marginBottom={1}
+                  paddingLeft={isSelected ? 0 : 2}
+                  borderStyle={isSelected ? 'round' : undefined}
+                  borderColor={isSelected ? 'green' : undefined}
+                >
+                  <Box gap={1} alignItems="center">
+                    {isSelected && <Text color="green" bold>❯</Text>}
+                    <Text bold color={isSelected ? 'white' : 'gray'}>
+                      #{pr.prNumber}
+                    </Text>
+                    <Text
+                      bold={isSelected}
+                      color={isSelected ? 'white' : 'gray'}
+                      wrap="truncate-end"
+                    >
+                      {pr.prTitle}
+                    </Text>
+                  </Box>
+
+                  <Box paddingLeft={isSelected ? 2 : 0} gap={2}>
+                    <RiskBadge level={pr.riskLevel} />
+                    <StatusBadge status={pr.status} />
+                    <Text dimColor color="gray">
+                      {timeAgo(pr.createdAt)}
+                    </Text>
+                  </Box>
+                </Box>
+              )
+            })}
+          </Box>
+        ))}
       </Box>
 
-      {/* Bottom hint bar */}
-      <Box
-        borderStyle="round"
-        borderColor="gray"
-        paddingLeft={1}
-        paddingRight={1}
-        marginTop={1}
-      >
-        <Text color="gray" dimColor>
-          {'↑↓ navigate  '}
-          <Text color="green" bold>Enter</Text>
-          {' open  '}
-          <Text color="green" bold>r</Text>
-          {' refresh  '}
-          <Text color="green" bold>q</Text>
-          {' quit'}
-        </Text>
-      </Box>
+      <NavBar
+        items={[
+          { key: '↑↓', label: 'navigate' },
+          { key: 'Enter', label: 'open' },
+          { key: 'r', label: 'refresh' },
+          { key: 'q', label: 'quit' },
+        ]}
+      />
     </Box>
   )
 }

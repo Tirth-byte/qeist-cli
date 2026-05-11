@@ -26,6 +26,8 @@ export const Chat = ({ pr, onBack, onTestCasesAdded }: Props) => {
   const [errorMsg, setErrorMsg] = useState('')
   const { stdin, setRawMode } = useStdin()
 
+  const totalAdded = messages.reduce((sum, m) => sum + (m.addedTestCases?.length || 0), 0)
+
   useEffect(() => {
     setRawMode?.(true)
     loadHistory()
@@ -140,10 +142,14 @@ export const Chat = ({ pr, onBack, onTestCasesAdded }: Props) => {
       <MiniLogo />
 
       <Box flexDirection="column" marginBottom={1}>
-        <Text bold color="white">AI Chat — {pr.prTitle}</Text>
-        <Text color="gray" dimColor>
-          {pr.repo} #{pr.prNumber} · Type to add test cases · exit to go back
-        </Text>
+        <Box gap={2}>
+          <Text bold color="white">AI Chat</Text>
+          <Text color="gray" dimColor>{pr.repo} #{pr.prNumber}</Text>
+          {totalAdded > 0 && (
+            <Text color="green" dimColor>+{totalAdded} test case{totalAdded !== 1 ? 's' : ''} added</Text>
+          )}
+        </Box>
+        <Text color="gray" dimColor wrap="truncate-end">{pr.prTitle}</Text>
       </Box>
 
       <Box marginBottom={1}>
@@ -163,7 +169,7 @@ export const Chat = ({ pr, onBack, onTestCasesAdded }: Props) => {
         </Box>
       )}
 
-      {messages.map((msg) => (
+      {messages.map((msg, msgIdx) => (
         <Box key={msg.id} flexDirection="column" marginBottom={1}>
           <Box gap={1}>
             <Text color="green" bold>You:</Text>
@@ -184,7 +190,7 @@ export const Chat = ({ pr, onBack, onTestCasesAdded }: Props) => {
                     <Text color="gray">{'☐'}</Text>
                     <Text bold color="white">{tc.area.toUpperCase()}</Text>
                     <PriorityBadge level={tc.priority} />
-                    <Text color="green">[AI CHAT]</Text>
+                    <Text color="cyan">[CHAT]</Text>
                   </Box>
                   {tc.why && (
                     <Box paddingLeft={2}>
@@ -204,28 +210,43 @@ export const Chat = ({ pr, onBack, onTestCasesAdded }: Props) => {
             </Box>
           )}
 
-          <Box>
-            <Text dimColor color="gray">{'─'.repeat(50)}</Text>
-          </Box>
+          {msgIdx < messages.length - 1 && (
+            <Box>
+              <Text dimColor color="gray">{'─'.repeat(50)}</Text>
+            </Box>
+          )}
         </Box>
       ))}
 
-      <Box gap={1} marginTop={1}>
-        <Text color="green" bold>{'You: '}</Text>
-        <Text color="white">{input}</Text>
-        <Text color="green">{'█'}</Text>
+      {/* Bordered input line */}
+      <Box
+        borderStyle="round"
+        borderColor={status === 'sending' ? 'yellow' : 'green'}
+        paddingLeft={1}
+        paddingRight={1}
+        marginTop={1}
+      >
+        <Box gap={1}>
+          <Text color="green" bold>❯</Text>
+          <Text color="white">{input}</Text>
+          {status !== 'sending' && <Text color="green">█</Text>}
+          {status === 'sending' && <Text color="yellow">⠋</Text>}
+        </Box>
       </Box>
 
       <Box marginTop={1} borderStyle="round" borderColor="gray" paddingLeft={1} paddingRight={1}>
         <Text color="gray" dimColor>
-          {'Enter send  ·  '}
-          <Text color="green">{' exit '}</Text>
+          {'Enter send  ·  type '}
+          <Text color="green">exit</Text>
           {' or Ctrl+C to go back'}
           {status === 'sending' && (
             <Text color="yellow"> · Sending...</Text>
           )}
           {status === 'error' && (
             <Text color="red"> · {errorMsg}</Text>
+          )}
+          {messages.length > 0 && (
+            <Text color="gray"> · {messages.length} message{messages.length !== 1 ? 's' : ''}</Text>
           )}
         </Text>
       </Box>

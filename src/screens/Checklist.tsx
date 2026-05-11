@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { Box, Text, useInput } from 'ink'
-import { Header } from '../components/Header.js'
+import { MiniLogo } from '../components/MiniLogo.js'
+import { NavBar } from '../components/NavBar.js'
 import { RiskBadge } from '../components/Badge.js'
 import { ProgressBar } from '../components/ProgressBar.js'
 import { TestCaseRow } from '../components/TestCase.js'
 import {
   Checklist as CL,
   PR,
-  updateProgress
+  updateProgress,
+  deleteTestCase,
 } from '../lib/api.js'
 
 type Props = {
@@ -24,8 +26,9 @@ export const ChecklistScreen = ({
   const [selected, setSelected] = useState(0)
   const [completed, setCompleted] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
+  const [deleteMode, setDeleteMode] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
-  // Sync completed state when checklist loads async after mount
   useEffect(() => {
     if (checklist) {
       setCompleted(checklist.completedIndexes || [])
@@ -36,31 +39,35 @@ export const ChecklistScreen = ({
   const done = completed.length
 
   useInput((input, key) => {
-    // Guard all input when checklist hasn't loaded yet
     if (!checklist) {
       if (key.leftArrow || input === 'b') onBack()
       if (input === 'q') process.exit(0)
       return
     }
 
-    if (key.upArrow) {
-      setSelected(s => Math.max(0, s - 1))
+    if (deleteMode) {
+      if (key.escape || input === 'd') {
+        setDeleteMode(false)
+        return
+      }
+      if (key.return) {
+        void handleDelete(selected)
+        return
+      }
+      if (key.upArrow) setSelected(s => Math.max(0, s - 1))
+      if (key.downArrow) setSelected(s => Math.min(total - 1, s + 1))
+      if (input === 'q') process.exit(0)
+      return
     }
-    if (key.downArrow) {
-      setSelected(s => Math.min(total - 1, s + 1))
-    }
-    if (input === ' ' || key.return) {
-      toggleTest(selected)
-    }
-    if (key.leftArrow || input === 'b') {
-      onBack()
-    }
-    if (input === 'a') {
-      approveAll()
-    }
-    if (input === 'c') {
-      onChat()
-    }
+
+    if (key.upArrow) setSelected(s => Math.max(0, s - 1))
+    if (key.downArrow) setSelected(s => Math.min(total - 1, s + 1))
+
+    if (input === ' ' || key.return) toggleTest(selected)
+    if (key.leftArrow || input === 'b') onBack()
+    if (input === 'a') void approveAll()
+    if (input === 'c') onChat()
+    if (input === 'd') setDeleteMode(true)
     if (input === 'q') process.exit(0)
 
     const num = parseInt(input)
@@ -89,51 +96,96 @@ export const ChecklistScreen = ({
     setTimeout(() => onApprove(all), 500)
   }
 
-  // Analyzing state — checklist not yet loaded
+  const handleDelete = async (index: number) => {
+    if (deleting || !checklist) return
+    setDeleting(true)
+    try {
+      await deleteTestCase(pr.id, index)
+      // Patch local state: splice test case and shift completedIndexes
+      checklist.testCases.splice(index, 1)
+      const newCompleted = completed
+        .filter(i => i !== index)
+        .map(i => (i > index ? i - 1 : i))
+      setCompleted(newCompleted)
+      setSelected(s => Math.min(s, checklist.testCases.length - 1))
+      setDeleteMode(false)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (!checklist) {
     return (
       <Box flexDirection="column" padding={1}>
-        <Header
-          title={pr.prTitle}
-          subtitle={`${pr.repo} #${pr.prNumber}`}
-        />
-        <Box flexDirection="column" gap={1} alignItems="center" marginTop={2}>
-          <Text color="yellow" bold>⠿ AI is analyzing your PR...</Text>
-          <Text color="gray" dimColor>This usually takes 20–30 seconds.</Text>
-        </Box>
+        <MiniLogo />
         <Box
           borderStyle="round"
           borderColor="gray"
           paddingLeft={1}
           paddingRight={1}
-          marginTop={2}
+          paddingTop={0}
+          paddingBottom={0}
+          marginBottom={1}
         >
-          <Text color="gray" dimColor>
-            <Text color="green" bold>b</Text>
-            {' / '}
-            <Text color="green" bold>←</Text>
-            {' back to PR list  '}
-            <Text color="green" bold>q</Text>
-            {' quit'}
-          </Text>
+          <Box flexDirection="column">
+            <Text bold color="white">{pr.prTitle}</Text>
+            <Text color="gray" dimColor>{pr.repo} #{pr.prNumber}</Text>
+          </Box>
         </Box>
+        <Box flexDirection="column" gap={1} alignItems="center" marginTop={1}>
+          <Text color="yellow" bold>⠿ AI is analyzing your PR...</Text>
+          <Text color="gray" dimColor>This usually takes 20–30 seconds.</Text>
+        </Box>
+        <NavBar
+          items={[
+            { key: 'b', label: 'back' },
+            { key: '←', label: 'back' },
+            { key: 'q', label: 'quit' },
+          ]}
+        />
       </Box>
     )
   }
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Header
-        title={pr.prTitle}
-        subtitle={`${pr.repo} #${pr.prNumber}`}
-      />
+      <MiniLogo />
 
-      {/* Risk + save indicator */}
-      <Box gap={2} marginBottom={1}>
-        <Text bold>Risk:</Text>
-        <RiskBadge level={pr.riskLevel} />
-        {saving && <Text color="gray" dimColor>  saving...</Text>}
+      {/* PR info box */}
+      <Box
+        borderStyle="round"
+        borderColor="gray"
+        paddingLeft={1}
+        paddingRight={1}
+        paddingTop={0}
+        paddingBottom={0}
+        marginBottom={1}
+      >
+        <Box flexDirection="column">
+          <Box gap={2}>
+            <Text bold color="white">{pr.prTitle}</Text>
+            <RiskBadge level={pr.riskLevel} />
+            {saving && <Text color="gray" dimColor>saving...</Text>}
+            {deleting && <Text color="red" dimColor>deleting...</Text>}
+          </Box>
+          <Text color="gray" dimColor>{pr.repo} #{pr.prNumber}</Text>
+        </Box>
       </Box>
+
+      {/* Delete mode warning */}
+      {deleteMode && (
+        <Box
+          borderStyle="round"
+          borderColor="red"
+          paddingLeft={1}
+          paddingRight={1}
+          marginBottom={1}
+        >
+          <Text color="red" bold>
+            ⚠ DELETE MODE — Enter to delete selected · d or Esc to cancel
+          </Text>
+        </Box>
+      )}
 
       {/* AI summary */}
       <Box
@@ -143,8 +195,6 @@ export const ChecklistScreen = ({
         borderColor="gray"
         paddingLeft={1}
         paddingRight={1}
-        paddingTop={0}
-        paddingBottom={0}
       >
         <Text color="green" bold>AI SUMMARY</Text>
         <Text color="gray" wrap="wrap">{checklist.summary}</Text>
@@ -166,6 +216,15 @@ export const ChecklistScreen = ({
       <Box marginBottom={1} gap={1}>
         <Text bold>Progress</Text>
         <ProgressBar done={done} total={total} />
+        <Text color="gray" dimColor>{done}/{total}</Text>
+      </Box>
+
+      {/* Legend */}
+      <Box gap={2} marginBottom={1}>
+        <Text color="cyan" dimColor>◆ AI Chat</Text>
+        <Text color="gray" dimColor>◇ Auto</Text>
+        <Text color="green" dimColor>✅ Done</Text>
+        <Text color="gray" dimColor>☐ Pending</Text>
       </Box>
 
       {/* Test cases */}
@@ -177,32 +236,29 @@ export const ChecklistScreen = ({
             index={i}
             isCompleted={completed.includes(i)}
             isSelected={selected === i}
+            deleteMode={deleteMode}
           />
         ))}
       </Box>
 
-      {/* Bottom hint bar */}
-      <Box
-        borderStyle="round"
-        borderColor="gray"
-        paddingLeft={1}
-        paddingRight={1}
-        marginTop={1}
-      >
-        <Text color="gray" dimColor>
-          {'↑↓ navigate  '}
-          <Text color="green" bold>Space</Text>
-          {' check  '}
-          <Text color="green" bold>a</Text>
-          {' approve all  '}
-          <Text color="green" bold>c</Text>
-          {' chat with AI  '}
-          <Text color="green" bold>b</Text>
-          {' back  '}
-          <Text color="green" bold>q</Text>
-          {' quit'}
-        </Text>
-      </Box>
+      <NavBar
+        items={deleteMode ? [
+          { key: '↑↓', label: 'navigate' },
+          { key: 'Enter', label: 'delete' },
+          { key: 'd', label: 'cancel delete' },
+          { key: 'Esc', label: 'cancel' },
+        ] : [
+          { key: '↑↓', label: 'navigate' },
+          { key: 'Space', label: 'check' },
+          { key: 'a', label: 'approve all' },
+          { key: 'c', label: 'AI chat' },
+          { key: 'd', label: 'delete mode' },
+          { key: 'b', label: 'back' },
+          { key: 'q', label: 'quit' },
+        ]}
+        status={deleteMode ? 'DELETE MODE' : undefined}
+        statusColor="red"
+      />
     </Box>
   )
 }

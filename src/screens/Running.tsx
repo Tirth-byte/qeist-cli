@@ -1,6 +1,7 @@
 import React from 'react'
 import { Box, Text, useInput } from 'ink'
-import { Header } from '../components/Header.js'
+import { MiniLogo } from '../components/MiniLogo.js'
+import { NavBar } from '../components/NavBar.js'
 import { TestCase } from '../lib/api.js'
 
 type Props = {
@@ -23,10 +24,16 @@ export const Running = ({
 
   const doneCount = completedIndexes.length
   const total = testCases.length
+  const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Header title="QA Results" subtitle="Synced to dashboard" />
+      <MiniLogo />
+
+      <Box gap={2} marginBottom={1}>
+        <Text bold color="white">QA Results</Text>
+        <Text color="gray" dimColor>synced to dashboard</Text>
+      </Box>
 
       <Box flexDirection="column">
         {testCases.map((tc, i) => {
@@ -49,32 +56,21 @@ export const Running = ({
 
       <Box marginTop={2} flexDirection="column" gap={1}>
         <Text color="green" bold>
-          ✅ {doneCount}/{total} tests completed · results synced
+          ✅ {doneCount}/{total} tests completed ({pct}%) · results synced
         </Text>
         <Text color="gray" dimColor>
           View full report at qeist.in/dashboard
         </Text>
       </Box>
 
-      {/* Bottom hint bar */}
-      <Box
-        borderStyle="round"
-        borderColor="gray"
-        paddingLeft={1}
-        paddingRight={1}
-        marginTop={1}
-      >
-        <Text color="gray" dimColor>
-          <Text color="green" bold>b</Text>
-          {' / '}
-          <Text color="green" bold>←</Text>
-          {' / '}
-          <Text color="green" bold>Enter</Text>
-          {' back to PR list  '}
-          <Text color="green" bold>q</Text>
-          {' quit'}
-        </Text>
-      </Box>
+      <NavBar
+        items={[
+          { key: 'b', label: 'back to PRs' },
+          { key: '←', label: 'back' },
+          { key: 'Enter', label: 'back' },
+          { key: 'q', label: 'quit' },
+        ]}
+      />
     </Box>
   )
 }

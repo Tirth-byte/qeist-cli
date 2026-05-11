@@ -107,3 +107,10 @@ export const updateProgress = async (
     { completedIndexes }
   )
 }
+
+export const deleteTestCase = async (
+  prId: string,
+  index: number
+): Promise<void> => {
+  await client().delete(`/api/prs/${prId}/checklist/testcase/${index}`)
+}
