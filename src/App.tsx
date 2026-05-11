@@ -9,14 +9,15 @@ import { ChecklistScreen } from './screens/Checklist.js'
 import { Running } from './screens/Running.js'
 
 type Screen =
-  | 'splash'
-  | 'login'
-  | 'prs'
-  | 'checklist'
-  | 'running'
+  | 'splash'    // always first — shows logo
+  | 'login'     // if no valid token
+  | 'prs'       // PR list (root after auth)
+  | 'checklist' // selected PR checklist
+  | 'running'   // results after approve-all
 
 export const App = () => {
-  // Always start with splash so the logo shows on every launch
+  // ALWAYS start with splash. Never 'prs' or 'checklist' directly.
+  // handleSplashDone is the only place that reads isLoggedIn().
   const [screen, setScreen] = useState<Screen>('splash')
   const [prs, setPRs] = useState<PR[]>([])
   const [selectedPR, setSelectedPR] = useState<PR | null>(null)
@@ -32,6 +33,7 @@ export const App = () => {
   }, [screen])
 
   const handleSplashDone = () => {
+    // After splash: check token validity then route — never skip this gate
     setScreen(isLoggedIn() ? 'prs' : 'login')
   }
 
@@ -42,7 +44,6 @@ export const App = () => {
       const data = await getPRs()
       setPRs(data)
     } catch (e: any) {
-      // 401 = token invalid/expired — clear and force re-login
       if (e.response?.status === 401) {
         clearConfig()
         setScreen('login')
